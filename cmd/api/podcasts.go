@@ -124,6 +124,47 @@ func (app *application) updatePodcastHandler(ctx *gin.Context) {
 		return
 	}
 
+	podcast, err := app.Models.Podcast.FindById(path.Id)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			app.notFoundResponse(ctx)
+			return
+		default:
+			app.serverErrorResponse(ctx, err)
+			return
+		}
+	}
+
+	if input.Title != "" {
+		podcast.Title = input.Title
+	}
+	if input.Platform != "" {
+		podcast.Platform = input.Platform
+	}
+	if input.Url != "" {
+		podcast.Url = input.Url
+	}
+	if input.Host != "" {
+		podcast.Host = input.Host
+	}
+	if input.Program != "" {
+		podcast.Program = input.Program
+	}
+	if input.GuestSpeakers != nil {
+		podcast.GuestSpeakers = input.GuestSpeakers
+	}
+	if input.Year != 0 {
+		podcast.Year = input.Year
+	}
+	if input.Language != "" {
+		podcast.Language = input.Language
+	}
+	if input.Tags != nil {
+		podcast.Tags = input.Tags
+	}
+
 	v := validator.New()
 
 	data.ValidatePodcast(v, &data.Podcast{
@@ -143,19 +184,7 @@ func (app *application) updatePodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	podcast := data.Podcast{
-		Title:         input.Title,
-		Platform:      input.Platform,
-		Url:           input.Url,
-		Host:          input.Host,
-		Program:       input.Program,
-		GuestSpeakers: input.GuestSpeakers,
-		Year:          input.Year,
-		Language:      input.Language,
-		Tags:          input.Tags,
-	}
-
-	err := app.Models.Podcast.UpdatePodcast(&podcast)
+	err = app.Models.Podcast.UpdatePodcast(podcast)
 	if err != nil {
 		app.serverErrorResponse(ctx, err)
 		return
