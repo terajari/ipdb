@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -63,6 +64,9 @@ func ValidatePodcast(v *validator.Validator, podcast *Podcast) {
 
 func (pm PodcastModel) Insert(podcast *Podcast) error {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	query := `
 		INSERT INTO podcasts 
 		(title, platform, url, host, program, guest_speakers, year, language, tags)
@@ -82,10 +86,13 @@ func (pm PodcastModel) Insert(podcast *Podcast) error {
 		podcast.Language,
 		pq.Array(podcast.Tags),
 	}
-	return pm.Db.QueryRow(query, args...).Scan(&podcast.Id, &podcast.CreatedAt)
+	return pm.Db.QueryRowContext(ctx, query, args...).Scan(&podcast.Id, &podcast.CreatedAt)
 }
 
 func (pm PodcastModel) FindById(id int64) (*Podcast, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	query := `
 		SELECT id, title, platform, url, host, program, guest_speakers, year, language, tags, created_at 
@@ -94,7 +101,7 @@ func (pm PodcastModel) FindById(id int64) (*Podcast, error) {
 	`
 
 	var podcast Podcast
-	if err := pm.Db.QueryRow(query, id).Scan(
+	if err := pm.Db.QueryRowContext(ctx, query, id).Scan(
 		&podcast.Id,
 		&podcast.Title,
 		&podcast.Platform,
@@ -115,6 +122,9 @@ func (pm PodcastModel) FindById(id int64) (*Podcast, error) {
 
 func (pm PodcastModel) UpdatePodcast(podcast *Podcast) error {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	query := `
 		UPDATE podcasts
 		SET title = $1, platform = $2, url = $3, host = $4, program = $5, guest_speakers = $6, year = $7, language = $8, tags = $9
@@ -134,7 +144,7 @@ func (pm PodcastModel) UpdatePodcast(podcast *Podcast) error {
 		podcast.Id,
 	}
 
-	return pm.Db.QueryRow(query, args...).Scan(&podcast.Id, &podcast.CreatedAt)
+	return pm.Db.QueryRowContext(ctx, query, args...).Scan(&podcast.Id, &podcast.CreatedAt)
 }
 
 func (pm PodcastModel) GetPodcasts() ([]*Podcast, error) {
@@ -143,11 +153,14 @@ func (pm PodcastModel) GetPodcasts() ([]*Podcast, error) {
 
 func (pm PodcastModel) DeleteById(id int64) error {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	stmt := `
 		DELETE FROM podcasts WHERE id = $1
 	`
 
-	_, err := pm.Db.Exec(stmt, id)
+	_, err := pm.Db.ExecContext(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
