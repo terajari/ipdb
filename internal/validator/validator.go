@@ -1,5 +1,7 @@
 package validator
 
+import "slices"
+
 type Validator struct {
 	Errors map[string]string
 }
@@ -24,8 +26,8 @@ func (v *Validator) Check(ok bool, key, message string) {
 	}
 }
 
-func (v *Validator) Unique(data []string) bool {
-	keys := make(map[string]bool)
+func Unique[T comparable](data ...T) bool {
+	keys := make(map[T]bool)
 	for _, entry := range data {
 		if _, value := keys[entry]; value {
 			return false
@@ -33,4 +35,8 @@ func (v *Validator) Unique(data []string) bool {
 		keys[entry] = true
 	}
 	return true
+}
+
+func PermitedValues[T comparable](value T, permitedValues ...T) bool {
+	return slices.Contains(permitedValues, value)
 }

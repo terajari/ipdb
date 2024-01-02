@@ -168,15 +168,15 @@ func (app *application) updatePodcastHandler(ctx *gin.Context) {
 	v := validator.New()
 
 	data.ValidatePodcast(v, &data.Podcast{
-		Title:         input.Title,
-		Platform:      input.Platform,
-		Url:           input.Url,
-		Host:          input.Host,
-		Program:       input.Program,
-		GuestSpeakers: input.GuestSpeakers,
-		Year:          input.Year,
-		Language:      input.Language,
-		Tags:          input.Tags,
+		Title:         podcast.Title,
+		Platform:      podcast.Platform,
+		Url:           podcast.Url,
+		Host:          podcast.Host,
+		Program:       podcast.Program,
+		GuestSpeakers: podcast.GuestSpeakers,
+		Year:          podcast.Year,
+		Language:      podcast.Language,
+		Tags:          podcast.Tags,
 	})
 
 	if !v.Valid() {
@@ -216,4 +216,49 @@ func (app *application) deletePodcastHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "message": "podcast successfully deleted"})
+}
+
+func (app *application) listPodcastHandler(ctx *gin.Context) {
+	var input struct {
+		Platform string   `form:"platform"`
+		Tags     []string `form:"tags"`
+		data.Filters
+	}
+
+	input.Filters.SortSafelist = []string{
+		"title",
+		"platform",
+		"host",
+		"program",
+		"guest_speakers",
+		"year",
+		"language",
+		"tags",
+	}
+
+	input.Filters = *data.DefaultsFilters(input.Filters)
+
+	if err := ctx.ShouldBindQuery(&input); err != nil {
+		app.badRequestResponse(ctx, err)
+		return
+	}
+
+	v := validator.New()
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.logger.Println(input.Filters.Sort)
+		app.logger.Print(v.Errors)
+		app.failedValidationResponse(ctx, v.Errors)
+		return
+	}
+
+	podcasts, metadata, err := app.Models.Podcast.GetAll(input.Platform, input.Tags, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(ctx, err)
+		return
+	}
+
+	app.logger.Println(input.Platform)
+
+	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": podcasts, "metadata": metadata})
 }

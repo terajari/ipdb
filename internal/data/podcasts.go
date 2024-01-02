@@ -33,6 +33,7 @@ type IPodcast interface {
 	GetPodcasts() ([]*Podcast, error)
 	UpdatePodcast(*Podcast) error
 	DeleteById(int64) error
+	GetAll(string, []string, Filters) (*[]Podcast, Metadata, error)
 }
 
 func NewPodcastModel(db *sql.DB) IPodcast {
@@ -56,10 +57,10 @@ func ValidatePodcast(v *validator.Validator, podcast *Podcast) {
 	v.Check(podcast.Year <= int64(time.Now().Year()), "year", "must not be in the future")
 	v.Check(len(podcast.Tags) >= 1, "tags", "must contain at least 1 tag")
 	v.Check(len(podcast.Tags) <= 10, "tags", "must not contain more than 10 tags")
-	v.Check(v.Unique(podcast.Tags), "tags", "must not contain duplicate tags")
+	v.Check(validator.Unique[string](podcast.Tags...), "tags", "must not contain duplicate tags")
 	v.Check(len(podcast.GuestSpeakers) >= 1, "guest_speakers", "must contain at least 1 guest_speaker")
 	v.Check(len(podcast.GuestSpeakers) <= 10, "guest_speakers", "must not contain more than 10 guest_speakers")
-	v.Check(v.Unique(podcast.GuestSpeakers), "guest_speakers", "must not contain duplicate guest_speakers")
+	v.Check(validator.Unique[string](podcast.GuestSpeakers...), "guest_speakers", "must not contain duplicate guest_speakers")
 }
 
 func (pm PodcastModel) Insert(podcast *Podcast) error {
@@ -166,4 +167,55 @@ func (pm PodcastModel) DeleteById(id int64) error {
 	}
 
 	return nil
+}
+
+func (pm PodcastModel) GetAll(platform string, tags []string, filters Filters) (*[]Podcast, Metadata, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, title, platform, url, host, program, guest_speakers, year, language, tags, created_at
+		FROM podcasts
+		WHERE (to_tsvector('simple', platform) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		OR (tags @> $2 OR $2 = '{}')
+		ORDER BY id
+		LIMIT $3 OFFSET $4
+	`
+
+	rows, err := pm.Db.QueryContext(ctx, query, platform, pq.Array(tags), filters.Limit(), filters.Offset())
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+
+	podcasts := []Podcast{}
+
+	for rows.Next() {
+		var podcast Podcast
+		if err := rows.Scan(
+			&podcast.Id,
+			&podcast.Title,
+			&podcast.Platform,
+			&podcast.Url,
+			&podcast.Host,
+			&podcast.Program,
+			pq.Array(&podcast.GuestSpeakers),
+			&podcast.Year,
+			&podcast.Language,
+			pq.Array(&podcast.Tags),
+			&podcast.CreatedAt,
+		); err != nil {
+			return nil, Metadata{}, err
+		}
+		podcasts = append(podcasts, podcast)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+
+	metadata := calculateMetadata(len(podcasts), filters.Page, filters.PageSize)
+
+	return &podcasts, metadata, nil
 }
