@@ -8,6 +8,8 @@ func (app *application) routes() *gin.Engine {
 	router := gin.Default()
 
 	rg := router.Group("/v1")
+	rg.Use(app.recoverPanic(), app.rateLimit())
+
 	rg.GET("/podcasts", app.listPodcastHandler)
 	rg.GET("/healthcheck", app.healthcheckHandler)
 	rg.POST("/podcasts", app.createPodcastHandler)
