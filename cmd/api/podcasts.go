@@ -77,7 +77,7 @@ func (app *application) getPodcastsHandler(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindUri(&path); err != nil {
-		app.logger.Println(err)
+		app.logger.Info(err.Error())
 		app.badRequestResponse(ctx, err)
 		return
 	}
@@ -246,8 +246,6 @@ func (app *application) listPodcastHandler(ctx *gin.Context) {
 	v := validator.New()
 
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
-		app.logger.Println(input.Filters.Sort)
-		app.logger.Print(v.Errors)
 		app.failedValidationResponse(ctx, v.Errors)
 		return
 	}
@@ -258,7 +256,7 @@ func (app *application) listPodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	app.logger.Println(input.Platform)
+	app.logger.Info(input.Platform)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": podcasts, "metadata": metadata})
 }

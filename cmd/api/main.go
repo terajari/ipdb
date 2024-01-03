@@ -4,9 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"log"
-	"net/http"
+	"log/slog"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -33,7 +32,7 @@ type config struct {
 
 type application struct {
 	config config
-	logger *log.Logger
+	logger *slog.Logger
 	Models data.Models
 }
 
@@ -52,16 +51,16 @@ func main() {
 
 	flag.Parse()
 
-	logger := log.New(log.Default().Writer(), "", 0)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	db, err := openDb(cfg)
 
 	if err != nil {
-		logger.Fatal(err)
+		logger.Error(err.Error())
 	}
 	defer db.Close()
 
-	logger.Printf("database connection pool established")
+	logger.Info("database connection pool established")
 
 	models := data.NewModels(db)
 
@@ -71,18 +70,9 @@ func main() {
 		Models: models,
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
-	logger.Printf("starting %s server on %s", version, srv.Addr)
-	err = srv.ListenAndServe()
-	if err != nil {
-		logger.Fatal(err)
+	if err = app.serve(); err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 }
 
