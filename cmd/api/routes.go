@@ -17,5 +17,7 @@ func (app *application) routes() *gin.Engine {
 	rg.PUT("/podcasts/:id", app.updatePodcastHandler)
 	rg.DELETE("/podcasts/:id", app.deletePodcastHandler)
 
+	rg.POST("/users", app.createUserHandler)
+
 	return router
 }

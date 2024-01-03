@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
+var (
 	ErrBadRequest        = "IPDB-001 - Use correct request format"
 	ErrValidation        = "IPDB-002 - Validation error"
 	ErrNotFound          = "IPDB-003 - Resource not found"
