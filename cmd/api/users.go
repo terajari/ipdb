@@ -41,7 +41,7 @@ func (app *application) createUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	err = app.Models.User.Insert(user)
+	err = app.models.User.Insert(user)
 
 	if err != nil {
 		switch {
@@ -53,6 +53,14 @@ func (app *application) createUserHandler(ctx *gin.Context) {
 		}
 		return
 	}
+
+	app.background(func() {
+		err = app.mailler.Send(user.Email, "user_welcome.tmpl", user)
+		if err != nil {
+			app.serverErrorResponse(ctx, err)
+			return
+		}
+	})
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"user": user,

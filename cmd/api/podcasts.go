@@ -59,7 +59,7 @@ func (app *application) createPodcastHandler(ctx *gin.Context) {
 		Tags:          input.Tags,
 	}
 
-	err := app.Models.Podcast.Insert(&podcast)
+	err := app.models.Podcast.Insert(&podcast)
 	if err != nil {
 		app.serverErrorResponse(ctx, err)
 		return
@@ -82,7 +82,7 @@ func (app *application) getPodcastsHandler(ctx *gin.Context) {
 		return
 	}
 
-	podcast, err := app.Models.Podcast.FindById(path.Id)
+	podcast, err := app.models.Podcast.FindById(path.Id)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -124,7 +124,7 @@ func (app *application) updatePodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	podcast, err := app.Models.Podcast.FindById(path.Id)
+	podcast, err := app.models.Podcast.FindById(path.Id)
 
 	if err != nil {
 		switch {
@@ -184,7 +184,7 @@ func (app *application) updatePodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	err = app.Models.Podcast.UpdatePodcast(podcast)
+	err = app.models.Podcast.UpdatePodcast(podcast)
 	if err != nil {
 		app.serverErrorResponse(ctx, err)
 		return
@@ -203,7 +203,7 @@ func (app *application) deletePodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	err := app.Models.Podcast.DeleteById(path.Id)
+	err := app.models.Podcast.DeleteById(path.Id)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -250,7 +250,7 @@ func (app *application) listPodcastHandler(ctx *gin.Context) {
 		return
 	}
 
-	podcasts, metadata, err := app.Models.Podcast.GetAll(input.Platform, input.Tags, input.Filters)
+	podcasts, metadata, err := app.models.Podcast.GetAll(input.Platform, input.Tags, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(ctx, err)
 		return
