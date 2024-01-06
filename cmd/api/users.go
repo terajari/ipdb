@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/terajari/ipdb/internal/data"
@@ -54,8 +55,21 @@ func (app *application) createUserHandler(ctx *gin.Context) {
 		return
 	}
 
+	token, err := app.models.Token.New(user.Id, 3*(24*time.Hour), data.ScopeActivation)
+	if err != nil {
+		app.serverErrorResponse(ctx, err)
+		return
+	}
+
 	app.background(func() {
-		err = app.mailler.Send(user.Email, "user_welcome.tmpl", user)
+
+		data := map[string]any{
+			"Name":           user.Name,
+			"Id":             user.Id,
+			"TokenPlainText": token.Plaintext,
+		}
+
+		err = app.mailler.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			app.serverErrorResponse(ctx, err)
 			return

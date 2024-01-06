@@ -1,8 +1,14 @@
 {{define "subject"}}Welcome to IPDB{{end}}
 {{define "plainbody"}}
-Hi {{.Name}}!
+Hi {{.UserName}}!
 Thanks for signing up for a IPDB account. We're excited to have you on board!
-For future refrence, your user ID is {{.Id}}.
+For future refrence, your user ID is {{.UserId}}.
+
+Please send a request to the 'PUT /v1/users/activation' endpoint with following the JSON body to activation your account:
+
+{"token": "{{.TokenPlainText}}"}
+
+please note that, this is a one-time activation token and it will expire in 3 days
 
 Thanks,
 
@@ -23,6 +29,17 @@ The IPDB Team
     <p>
         Thanks for signing up for a IPDB account. We're excited to have you on board!
         For future refrence, your user ID is {{.Id}}.
+    </p>
+    <p>
+        Please send a request to the 'PUT /v1/users/activation' endpoint with following the JSON body to activation your account:
+    </p>
+    <pre>
+        <code>
+            {"token": "{{.TokenPlainText}}"}
+        </code>
+    </pre>
+    <p>
+        please note that, this is a one-time activation token and it will expire in 3 days
     </p>
     <p>
         Thanks,
