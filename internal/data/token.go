@@ -2,10 +2,10 @@ package data
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base32"
-	"math/rand"
 	"time"
 
 	"github.com/terajari/ipdb/internal/validator"
@@ -19,7 +19,7 @@ type Token struct {
 	Plaintext string
 	Hash      []byte
 	UserId    int64
-	Expiry    time.Duration
+	Expiry    time.Time
 	Scope     string
 }
 
@@ -27,7 +27,7 @@ func generateToken(userId int64, ttl time.Duration, scope string) (*Token, error
 
 	token := &Token{
 		UserId: userId,
-		Expiry: ttl,
+		Expiry: time.Now().Add(ttl),
 		Scope:  scope,
 	}
 
@@ -72,13 +72,15 @@ func (tm *TokenModel) New(userId int64, ttl time.Duration, scope string) (*Token
 		return nil, err
 	}
 
-	return token, nil
+	err = tm.Insert(token)
+
+	return token, err
 }
 
 func (tm *TokenModel) Insert(t *Token) error {
 
 	query := `
-		INSERT INTO token (hash, user_id, expiry, scope)
+		INSERT INTO tokens (hash, user_id, expiry, scope)
 		VALUES ($1, $2, $3, $4)
 	`
 	args := []any{t.Hash, t.UserId, t.Expiry, t.Scope}
@@ -98,7 +100,7 @@ func (tm *TokenModel) Insert(t *Token) error {
 func (tm *TokenModel) DeleteAll(scope string, userId int64) error {
 
 	stmt := `
-		DELETE FROM token
+		DELETE FROM tokens
 		WHERE scope = $1 AND user_id = $2
 	`
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
