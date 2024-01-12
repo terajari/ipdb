@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -30,6 +31,8 @@ type IUser interface {
 	Insert(user *User) error
 	GetByEmail(email string) (*User, error)
 	Update(user *User) error
+	GetForToken(string, string) (*User, error)
+	ActivateUser(userI int64) error
 }
 
 func NewUserModel(db *sql.DB) IUser {
@@ -175,6 +178,61 @@ func (m *UserModel) Update(user *User) error {
 		default:
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *UserModel) GetForToken(tokenScope string, token string) (*User, error) {
+
+	tokenHash := sha256.Sum256([]byte(token))
+
+	query := `
+		SELECT users.id, users.name, users.email, users.created_at, users.activated, users.version 
+		FROM users
+		INNER JOIN tokens
+		ON users.id = tokens.user_id
+		WHERE tokens.hash = $1
+		AND tokens.scope = $2
+		AND tokens.expiry > $3
+	`
+
+	args := []any{tokenHash[:], tokenScope, time.Now()}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var user User
+
+	err := m.Db.QueryRowContext(ctx, query, args...).Scan(
+		&user.Id,
+		&user.Name,
+		&user.Email,
+		&user.CreatedAt,
+		&user.Activated,
+		&user.Version,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (m *UserModel) ActivateUser(userid int64) error {
+
+	query := `
+		UPDATE users SET activated = true
+		WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := m.Db.ExecContext(ctx, query, userid)
+	if err != nil {
+		return err
 	}
 
 	return nil

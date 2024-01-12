@@ -80,3 +80,44 @@ func (app *application) createUserHandler(ctx *gin.Context) {
 		"user": user,
 	})
 }
+
+func (app *application) activateUserHandler(ctx *gin.Context) {
+
+	var input struct {
+		Token string `json:"token"`
+	}
+
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		app.badRequestResponse(ctx, err)
+	}
+
+	v := validator.New()
+
+	if data.ValidatePlaintext(v, input.Token); !v.Valid() {
+		app.failedValidationResponse(ctx, v.Errors)
+	}
+
+	user, err := app.models.User.GetForToken(data.ScopeActivation, input.Token)
+	if err != nil {
+		app.serverErrorResponse(ctx, err)
+		return
+	}
+
+	user.Activated = true
+
+	err = app.models.User.ActivateUser(user.Id)
+	if err != nil {
+		app.serverErrorResponse(ctx, err)
+		return
+	}
+
+	err = app.models.Token.DeleteAll(data.ScopeActivation, user.Id)
+	if err != nil {
+		app.serverErrorResponse(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"user": user,
+	})
+}
