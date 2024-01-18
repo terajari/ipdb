@@ -20,5 +20,7 @@ func (app *application) routes() *gin.Engine {
 	rg.POST("/users", app.createUserHandler)
 	rg.PUT("/users/activated", app.activateUserHandler)
 
+	rg.POST("/tokens/authentication", app.authTokenHandler)
+
 	return router
 }

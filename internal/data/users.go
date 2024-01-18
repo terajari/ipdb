@@ -33,6 +33,7 @@ type IUser interface {
 	Update(user *User) error
 	GetForToken(string, string) (*User, error)
 	ActivateUser(userI int64) error
+	Matches(*User, string) (bool, error)
 }
 
 func NewUserModel(db *sql.DB) IUser {
@@ -54,8 +55,8 @@ func (p *password) Set(plaintextPassword string) error {
 	return nil
 }
 
-func (p *password) Matches(plaintextPassword string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword(p.Hash, []byte(plaintextPassword))
+func (um *UserModel) Matches(user *User, plaintextPassword string) (bool, error) {
+	err := bcrypt.CompareHashAndPassword(user.Password.Hash, []byte(plaintextPassword))
 	if err != nil {
 		switch {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):

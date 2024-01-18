@@ -12,6 +12,7 @@ var (
 	ErrNotFound          = "IPDB-003 - Resource not found"
 	ErrServer            = "IPDB-004 - Server error"
 	ErrRateLimitExceeded = "IPDB-005 - Rate limit exceeded"
+	ErrInvalidCredential = "IPDB-006 - Invalid Credential"
 )
 
 func (app *application) badRequestResponse(ctx *gin.Context, err error) {
@@ -49,5 +50,12 @@ func (app *application) rateLimitExceededResponse(ctx *gin.Context) {
 	ctx.JSON(http.StatusTooManyRequests, gin.H{
 		"status":  http.StatusTooManyRequests,
 		"message": ErrRateLimitExceeded,
+	})
+}
+
+func (app *application) invalidCredentialResponse(ctx *gin.Context) {
+	ctx.JSON(http.StatusUnauthorized, gin.H{
+		"status":  http.StatusUnauthorized,
+		"message": ErrInvalidCredential,
 	})
 }
